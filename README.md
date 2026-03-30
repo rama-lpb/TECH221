@@ -43,10 +43,16 @@ tech221/
 npm install
 
 # 2. Configurer la base de données dans .env
-DATABASE_URL="postgresql://user:password@localhost:5432/tech221_db"
+DATABASE_URL="postgresql://user:password@host:port/database"
 
-# 3. Générer le client Prisma & migrer
+# Optionnel: si tu veux une DB locale, tu peux lancer PostgreSQL via `docker-compose.yml`
+# et pointer `DATABASE_URL` dessus. Sinon, Docker n'est pas nécessaire.
+
+# 3. Générer le client Prisma
 npm run db:generate
+
+# (Optionnel) Créer les tables via Prisma
+# Si tu crées les tables manuellement, ne lance pas cette commande.
 npm run db:migrate
 
 # 4. Lancer en dev
