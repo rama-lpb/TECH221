@@ -8,6 +8,8 @@ info:
 servers:
   - url: http://localhost:3000/api/v1
     description: Serveur local
+  - url: https://tech221.onrender.com/api/v1
+    description: Serveur de production (Render)
 tags:
   - name: Health
     description: Points de santé

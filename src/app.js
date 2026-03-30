@@ -15,7 +15,16 @@ const app = express();
 
 // Sécurité & parsing
 app.use(helmet());
-app.use(cors());
+// Configuration CORS
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? '*'  // Autoriser toutes les origines en production
+    : ['http://localhost:3000', 'http://localhost:5173'],  // Origines autorisées en développement
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -6,7 +6,7 @@ services:
     name: tech221-api
     env: node
     region: oregon
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -14,10 +14,16 @@ services:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
+        # IMPORTANT: Configurer cette variable depuis le dashboard Render
+        # Créer une PostgreSQL database sur Render et utiliser l'URL fournie
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
+        # Configurer depuis le dashboard Render ou dans les paramètres Cloudinary
         sync: false
       - key: CLOUDINARY_API_KEY
+        # Configurer depuis le dashboard Render ou dans les paramètres Cloudinary
         sync: false
       - key: CLOUDINARY_API_SECRET
+        # IMPORTANT: Configurer cette variable depuis le dashboard Render
+        # Ne pas inclure de valeur ici pour des raisons de sécurité
         sync: false
