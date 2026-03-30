@@ -1,0 +1,72 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Departement {
+  id             Int        @id @default(autoincrement())
+  code           String
+  sousDepartement String?
+  libelle        String
+  archive        Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  employes       Employe[]
+
+  @@unique([code, sousDepartement])
+}
+
+model Employe {
+  id            Int           @id @default(autoincrement())
+  prenom        String
+  nom           String
+  email         String        @unique
+  telephone     String
+  photoUrl      String?
+  matricule     String        @unique
+  departementId Int
+  departement   Departement   @relation(fields: [departementId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  affectations  Affectation[]
+}
+
+model Projet {
+  id          Int           @id @default(autoincrement())
+  nom         String
+  description String?
+  dateDebut   DateTime
+  dateFin     DateTime?
+  statut      StatutProjet  @default(BROUILLON)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  affectations Affectation[]
+}
+
+model Affectation {
+  id              Int      @id @default(autoincrement())
+  employeId       Int
+  projetId        Int
+  role            String
+  dateAffectation DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  employe Employe @relation(fields: [employeId], references: [id])
+  projet  Projet  @relation(fields: [projetId], references: [id])
+
+  @@unique([employeId, projetId])
+}
+
+enum StatutProjet {
+  BROUILLON
+  EN_COURS
+  TERMINE
+  ANNULE
+}

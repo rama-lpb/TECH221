@@ -1,0 +1,739 @@
+openapi: 3.0.3
+info:
+  title: API Gestion Projets & Employés
+  version: 1.0.0
+  description: |-
+    API RESTful pour gérer les départements, employés, projets et affectations.
+    Documentation générée à partir du code source du projet.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Serveur local
+tags:
+  - name: Health
+    description: Points de santé
+  - name: Departements
+    description: Gestion des départements
+  - name: Employes
+    description: Gestion des employés
+  - name: Projets
+    description: Gestion des projets
+  - name: Affectations
+    description: Gestion des affectations (employé ↔ projet)
+components:
+  schemas:
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    Departement:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        libelle:
+          type: string
+        sousDepartement:
+          type: string
+          nullable: true
+        archive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 1
+        code: "INFO"
+        libelle: "Informatique"
+        sousDepartement: null
+        archive: false
+        createdAt: "2024-01-15T10:00:00Z"
+        updatedAt: "2024-01-15T10:00:00Z"
+
+    DepartementCreate:
+      type: object
+      required: [code, libelle]
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 10
+        libelle:
+          type: string
+        sousDepartement:
+          type: string
+          nullable: true
+      example:
+        code: "INFO"
+        libelle: "Informatique"
+        sousDepartement: null
+
+    DepartementUpdate:
+      type: object
+      properties:
+        code:
+          type: string
+        libelle:
+          type: string
+        archive:
+          type: boolean
+        sousDepartement:
+          type: string
+          nullable: true
+
+    Employe:
+      type: object
+      properties:
+        id:
+          type: integer
+        prenom:
+          type: string
+        nom:
+          type: string
+        email:
+          type: string
+          format: email
+        telephone:
+          type: string
+        departementId:
+          type: integer
+        departement:
+          $ref: '#/components/schemas/Departement'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EmployeCreate:
+      type: object
+      required: [prenom, nom, email, telephone, departementId]
+      properties:
+        prenom:
+          type: string
+        nom:
+          type: string
+        email:
+          type: string
+          format: email
+        telephone:
+          type: string
+          description: Format: +{indicatif}{numero} ou nombre de 6 à 15 chiffres
+        departementId:
+          type: integer
+
+    EmployeUpdate:
+      type: object
+      properties:
+        prenom:
+          type: string
+        nom:
+          type: string
+        email:
+          type: string
+          format: email
+        telephone:
+          type: string
+        departementId:
+          type: integer
+
+    Projet:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        description:
+          type: string
+          nullable: true
+        dateDebut:
+          type: string
+          format: date-time
+        dateFin:
+          type: string
+          format: date-time
+          nullable: true
+        statut:
+          type: string
+          enum: [BROUILLON, EN_COURS, TERMINE, ANNULE]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProjetCreate:
+      type: object
+      required: [nom, dateDebut]
+      properties:
+        nom:
+          type: string
+        description:
+          type: string
+        dateDebut:
+          type: string
+          format: date-time
+        dateFin:
+          type: string
+          format: date-time
+        statut:
+          type: string
+          enum: [BROUILLON, EN_COURS, TERMINE, ANNULE]
+
+    ProjetUpdate:
+      type: object
+      properties:
+        nom:
+          type: string
+        description:
+          type: string
+        dateDebut:
+          type: string
+          format: date-time
+        dateFin:
+          type: string
+          format: date-time
+          nullable: true
+        statut:
+          type: string
+          enum: [BROUILLON, EN_COURS, TERMINE, ANNULE]
+
+    Affectation:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeId:
+          type: integer
+        projetId:
+          type: integer
+        role:
+          type: string
+        dateAffectation:
+          type: string
+          format: date-time
+        employe:
+          $ref: '#/components/schemas/Employe'
+        projet:
+          $ref: '#/components/schemas/Projet'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AffectationCreate:
+      type: object
+      required: [employeId, projetId, role, dateAffectation]
+      properties:
+        employeId:
+          type: integer
+        projetId:
+          type: integer
+        role:
+          type: string
+        dateAffectation:
+          type: string
+          format: date-time
+
+    AffectationUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+        dateAffectation:
+          type: string
+          format: date-time
+
+    ResponseSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+
+    ResponseError:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        details:
+          type: object
+
+  parameters:
+    idParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    projetIdParam:
+      name: projetId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Vérifie l'état du service
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /departements:
+    get:
+      tags: [Departements]
+      summary: Lister les départements
+      parameters:
+        - in: query
+          name: archive
+          schema:
+            type: boolean
+          description: Inclure les départements archivés si true
+      responses:
+        '200':
+          description: Liste des départements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Departement'
+
+    post:
+      tags: [Departements]
+      summary: Créer un département
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartementCreate'
+      responses:
+        '201':
+          description: Département créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+        '400':
+          description: Erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+
+  /departements/{id}:
+    get:
+      tags: [Departements]
+      summary: Récupère un département par ID
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Département trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+        '404':
+          description: Non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+
+    put:
+      tags: [Departements]
+      summary: Mettre à jour un département
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartementUpdate'
+      responses:
+        '200':
+          description: Département mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    patch:
+      tags: [Departements]
+      summary: Archiver un département
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Département archivé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    delete:
+      tags: [Departements]
+      summary: Supprimer un département
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Département supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /employes:
+    get:
+      tags: [Employes]
+      summary: Lister les employés
+      responses:
+        '200':
+          description: Liste des employés
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employe'
+
+    post:
+      tags: [Employes]
+      summary: Créer un employé
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeCreate'
+      responses:
+        '201':
+          description: Employé créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /employes/{id}:
+    get:
+      tags: [Employes]
+      summary: Récupère un employé par ID
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Employé trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+        '404':
+          description: Non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+
+    put:
+      tags: [Employes]
+      summary: Mettre à jour un employé
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeUpdate'
+      responses:
+        '200':
+          description: Employé mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    delete:
+      tags: [Employes]
+      summary: Supprimer un employé
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Employé supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /employes/{id}/photo:
+    post:
+      tags: [Employes]
+      summary: Upload de la photo d'un employé
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image de l'employé (JPG, PNG, WEBP - max 5MB)
+      responses:
+        '200':
+          description: Photo uploadée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+        '400':
+          description: Format de fichier invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+        '404':
+          description: Employé non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+
+  /projets:
+    get:
+      tags: [Projets]
+      summary: Lister les projets
+      responses:
+        '200':
+          description: Liste des projets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Projet'
+
+    post:
+      tags: [Projets]
+      summary: Créer un projet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjetCreate'
+      responses:
+        '201':
+          description: Projet créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /projets/{id}:
+    get:
+      tags: [Projets]
+      summary: Récupère un projet par ID
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Projet trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    put:
+      tags: [Projets]
+      summary: Mettre à jour un projet
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjetUpdate'
+      responses:
+        '200':
+          description: Projet mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    delete:
+      tags: [Projets]
+      summary: Supprimer un projet
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Projet supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /projets/{projetId}/affectations:
+    get:
+      tags: [Affectations]
+      summary: Lister les affectations d'un projet
+      parameters:
+        - $ref: '#/components/parameters/projetIdParam'
+      responses:
+        '200':
+          description: Liste des affectations pour le projet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Affectation'
+
+  /affectations:
+    get:
+      tags: [Affectations]
+      summary: Lister les affectations
+      responses:
+        '200':
+          description: Liste des affectations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Affectation'
+
+    post:
+      tags: [Affectations]
+      summary: Créer une affectation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AffectationCreate'
+      responses:
+        '201':
+          description: Affectation créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /affectations/{id}:
+    get:
+      tags: [Affectations]
+      summary: Récupère une affectation par ID
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Affectation trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    put:
+      tags: [Affectations]
+      summary: Mettre à jour une affectation
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AffectationUpdate'
+      responses:
+        '200':
+          description: Affectation mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+    delete:
+      tags: [Affectations]
+      summary: Supprimer une affectation
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Affectation supprimée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
