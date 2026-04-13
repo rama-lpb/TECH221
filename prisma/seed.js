@@ -22,6 +22,25 @@ async function main() {
     },
   });
 
+  // Créer des sous-départements pour IT
+  const itBackend = await prisma.departement.create({
+    data: {
+      code: 'IT',
+      libelle: 'Informatique',
+      sousDepartement: 'Backend',
+      archive: false,
+    },
+  });
+
+  const itFrontend = await prisma.departement.create({
+    data: {
+      code: 'IT',
+      libelle: 'Informatique',
+      sousDepartement: 'Frontend',
+      archive: false,
+    },
+  });
+
   const deptHR = await prisma.departement.create({
     data: {
       code: 'RH',
@@ -55,7 +74,7 @@ async function main() {
       nom: 'Dupont',
       email: 'jean.dupont@tech221.fr',
       telephone: '+33612345678',
-      departementId: deptIT.id,
+      departementId: itBackend.id,
     },
   });
 
@@ -65,7 +84,7 @@ async function main() {
       nom: 'Martin',
       email: 'marie.martin@tech221.fr',
       telephone: '+33698765432',
-      departementId: deptIT.id,
+      departementId: itFrontend.id,
     },
   });
 

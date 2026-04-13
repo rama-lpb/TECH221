@@ -13,8 +13,12 @@ servers:
 tags:
   - name: Health
     description: Points de santé
+  - name: Auth
+    description: Authentification (login, register)
   - name: Departements
     description: Gestion des départements
+  - name: SousDepartements
+    description: Gestion des sous-départements (dépend d'un département)
   - name: Employes
     description: Gestion des employés
   - name: Projets
@@ -22,6 +26,11 @@ tags:
   - name: Affectations
     description: Gestion des affectations (employé ↔ projet)
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Health:
       type: object
@@ -44,6 +53,11 @@ components:
         sousDepartement:
           type: string
           nullable: true
+        sousDepartements:
+          type: array
+          description: Liste des sous-départements (uniquement pour un département racine)
+          items:
+            $ref: '#/components/schemas/SousDepartement'
         archive:
           type: boolean
         createdAt:
@@ -57,6 +71,14 @@ components:
         code: "INFO"
         libelle: "Informatique"
         sousDepartement: null
+        sousDepartements:
+          - id: 2
+            code: "INFO"
+            libelle: "Informatique"
+            sousDepartement: "Backend"
+            archive: false
+            createdAt: "2024-01-15T10:00:00Z"
+            updatedAt: "2024-01-15T10:00:00Z"
         archive: false
         createdAt: "2024-01-15T10:00:00Z"
         updatedAt: "2024-01-15T10:00:00Z"
@@ -71,13 +93,9 @@ components:
           maxLength: 10
         libelle:
           type: string
-        sousDepartement:
-          type: string
-          nullable: true
       example:
         code: "INFO"
         libelle: "Informatique"
-        sousDepartement: null
 
     DepartementUpdate:
       type: object
@@ -88,9 +106,48 @@ components:
           type: string
         archive:
           type: boolean
+
+    SousDepartement:
+      type: object
+      required: [id, code, libelle, sousDepartement]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        libelle:
+          type: string
         sousDepartement:
           type: string
-          nullable: true
+        archive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SousDepartementCreate:
+      type: object
+      required: [sousDepartement]
+      properties:
+        sousDepartement:
+          type: string
+          minLength: 1
+          maxLength: 50
+      example:
+        sousDepartement: "Backend"
+
+    SousDepartementUpdate:
+      type: object
+      properties:
+        sousDepartement:
+          type: string
+          minLength: 1
+          maxLength: 50
+        archive:
+          type: boolean
 
     Employe:
       type: object
@@ -130,7 +187,6 @@ components:
           format: email
         telephone:
           type: string
-          description: Format: +{indicatif}{numero} ou nombre de 6 à 15 chiffres
         departementId:
           type: integer
 
@@ -260,6 +316,74 @@ components:
           type: string
           format: date-time
 
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        nom:
+          type: string
+        prenom:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, USER]
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password, nom, prenom]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        nom:
+          type: string
+        prenom:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, USER]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+        refreshToken:
+          type: string
+
+    RegisterResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        nom:
+          type: string
+        prenom:
+          type: string
+        role:
+          type: string
+        message:
+          type: string
+
     ResponseSuccess:
       type: object
       properties:
@@ -299,6 +423,7 @@ paths:
     get:
       tags: [Health]
       summary: Vérifie l'état du service
+      security: []
       responses:
         '200':
           description: OK
@@ -307,10 +432,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
 
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Inscription d'un nouvel utilisateur
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Erreur de validation
+        '409':
+          description: Email déjà utilisé
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Connexion utilisateur
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Identifiants incorrects
+
   /departements:
     get:
       tags: [Departements]
       summary: Lister les départements
+      security:
+        - bearerAuth: []
       parameters:
         - in: query
           name: archive
@@ -337,6 +508,8 @@ paths:
     post:
       tags: [Departements]
       summary: Créer un département
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -361,6 +534,8 @@ paths:
     get:
       tags: [Departements]
       summary: Récupère un département par ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -380,6 +555,8 @@ paths:
     put:
       tags: [Departements]
       summary: Mettre à jour un département
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       requestBody:
@@ -399,6 +576,8 @@ paths:
     patch:
       tags: [Departements]
       summary: Archiver un département
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -412,6 +591,8 @@ paths:
     delete:
       tags: [Departements]
       summary: Supprimer un département
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -422,10 +603,171 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResponseSuccess'
 
+  /departements/{id}/sous-departements:
+    get:
+      tags: [SousDepartements]
+      summary: Lister les sous-départements d'un département
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+        - in: query
+          name: archive
+          schema:
+            type: boolean
+          description: Inclure les sous-départements archivés si true
+      responses:
+        '200':
+          description: Liste des sous-départements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SousDepartement'
+
+    post:
+      tags: [SousDepartements]
+      summary: Créer un sous-département pour un département
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SousDepartementCreate'
+      responses:
+        '201':
+          description: Sous-département créé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/SousDepartement'
+        '400':
+          description: Erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+
+  /sous-departements/{id}:
+    get:
+      tags: [SousDepartements]
+      summary: Récupère un sous-département par ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Sous-département trouvé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/SousDepartement'
+        '404':
+          description: Non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+
+    put:
+      tags: [SousDepartements]
+      summary: Mettre à jour un sous-département
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SousDepartementUpdate'
+      responses:
+        '200':
+          description: Sous-département mis à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/SousDepartement'
+
+    delete:
+      tags: [SousDepartements]
+      summary: Supprimer un sous-département
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Sous-département supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSuccess'
+
+  /sous-departements/{id}/archive:
+    patch:
+      tags: [SousDepartements]
+      summary: Archiver un sous-département
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Sous-département archivé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/SousDepartement'
+
   /employes:
     get:
       tags: [Employes]
       summary: Lister les employés
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Liste des employés
@@ -446,6 +788,8 @@ paths:
     post:
       tags: [Employes]
       summary: Créer un employé
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -464,6 +808,8 @@ paths:
     get:
       tags: [Employes]
       summary: Récupère un employé par ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -483,6 +829,8 @@ paths:
     put:
       tags: [Employes]
       summary: Mettre à jour un employé
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       requestBody:
@@ -502,6 +850,8 @@ paths:
     delete:
       tags: [Employes]
       summary: Supprimer un employé
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -516,6 +866,8 @@ paths:
     post:
       tags: [Employes]
       summary: Upload de la photo d'un employé
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       requestBody:
@@ -553,6 +905,8 @@ paths:
     get:
       tags: [Projets]
       summary: Lister les projets
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Liste des projets
@@ -573,6 +927,8 @@ paths:
     post:
       tags: [Projets]
       summary: Créer un projet
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -591,6 +947,8 @@ paths:
     get:
       tags: [Projets]
       summary: Récupère un projet par ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -604,6 +962,8 @@ paths:
     put:
       tags: [Projets]
       summary: Mettre à jour un projet
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       requestBody:
@@ -623,6 +983,8 @@ paths:
     delete:
       tags: [Projets]
       summary: Supprimer un projet
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -637,6 +999,8 @@ paths:
     get:
       tags: [Affectations]
       summary: Lister les affectations d'un projet
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/projetIdParam'
       responses:
@@ -660,6 +1024,8 @@ paths:
     get:
       tags: [Affectations]
       summary: Lister les affectations
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Liste des affectations
@@ -680,6 +1046,8 @@ paths:
     post:
       tags: [Affectations]
       summary: Créer une affectation
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -698,6 +1066,8 @@ paths:
     get:
       tags: [Affectations]
       summary: Récupère une affectation par ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:
@@ -711,6 +1081,8 @@ paths:
     put:
       tags: [Affectations]
       summary: Mettre à jour une affectation
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       requestBody:
@@ -730,6 +1102,8 @@ paths:
     delete:
       tags: [Affectations]
       summary: Supprimer une affectation
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/idParam'
       responses:

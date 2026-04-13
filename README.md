@@ -73,6 +73,18 @@ Base URL : `http://localhost:3000/api/v1`
 | PATCH | `/departements/:id/archive` | Archiver |
 | DELETE | `/departements/:id` | Supprimer (bloqué si employés liés) |
 
+Note: les routes `GET /departements` et `GET /departements/:id` renvoient aussi `sousDepartements: []` (objets) pour un département racine.
+
+### Sous-départements
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/departements/:id/sous-departements` | Lister (query: `?archive=true`) |
+| POST | `/departements/:id/sous-departements` | Créer (dépend d'un département) |
+| GET | `/sous-departements/:id` | Détail |
+| PUT | `/sous-departements/:id` | Modifier |
+| PATCH | `/sous-departements/:id/archive` | Archiver |
+| DELETE | `/sous-departements/:id` | Supprimer (bloqué si employés liés) |
+
 ### Employés
 | Méthode | Route | Description |
 |---------|-------|-------------|
